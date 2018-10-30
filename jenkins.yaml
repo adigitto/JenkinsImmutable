@@ -1,0 +1,66 @@
+#https://github.com/jenkinsci/configuration-as-code-plug  in
+
+# Set up global credentials
+jenkins:
+  systemMessage: |
+      Welcome to your local instance of jenkins!
+  numExecutors: 2 
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          ### Example on how to setup a username and password
+          # - usernamePassword:
+          #     scope: GLOBAL
+          #     id: "username"
+          #     username: "some-user"
+          #     password: "somepass" #Load from Environment Variable
+          #     description: "Username/Password Credentials for some-user"
+          - basicSSHUserPrivateKey:
+              scope: GLOBAL
+              id: "github-ssh"
+              username: "github-ssh"
+              #passphrase: "" #Doable, but not recommended
+              description: "SSH Credentials for github"
+              privateKeySource:
+                directEntry:
+                  privateKey: ${KEY} #Load from Environment Variable
+# Set up the Jenkins Shared Library
+unclassified:
+  globalLibraries:
+    libraries:
+        # Default branch for the shared library
+      - defaultVersion: "master"
+        # This means everyone can use the shared functions without having to load the library
+        implicit: true
+        name: 'jenkins-shared-library'
+        retriever:
+          modernSCM:
+            scm:
+              git:
+                remote: 'git@github.com:RedVentures/jenkins-shared-library.git'
+                credentialsId: 'github-ssh'
+# Configure admin email and the URL of Jenkins
+  location:
+    adminAddress: admin@example.com
+    #url: https://ci.example.com/
+jobs:
+  - script: >
+      pipelineJob('hello-world') {
+        definition {
+            cps {
+              script("""
+                pipeline {
+                  agent {label 'master'}
+                      stages{
+                          stage('Hello World') { 
+                              steps {
+                                  helloWorld()
+                              }       
+                          }
+                      }
+                  }
+              """.stripIndent())      
+            }
+          }
+      }
